@@ -1,0 +1,24 @@
+name: QingMingVault
+main: com.qingming.vault.VaultPlugin
+version: 1.0.0
+author: QingMing
+description: 青冥仓库 —— 龙核动态界面个人仓库（存 / 取 / 分页 / 右键自定数量）
+depend: [DragonCore]
+softdepend: [PlaceholderAPI]
+
+commands:
+  vault:
+    description: 打开个人仓库
+    usage: /vault | /vault reload | /vault open <玩家> | /vault info <玩家>
+    aliases: [qmvvault, qmv, 仓库]
+
+permissions:
+  qingmingvault.use:
+    description: 使用仓库
+    default: true
+  qingmingvault.open:
+    description: 给别人打开仓库
+    default: op
+  qingmingvault.admin:
+    description: 重载 / 管理仓库
+    default: op

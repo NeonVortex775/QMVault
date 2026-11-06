@@ -1,0 +1,7 @@
+build/
+out/
+lib/*.jar
+*.class
+.idea/
+*.iml
+.DS_Store

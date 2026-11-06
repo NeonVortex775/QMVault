@@ -1,0 +1,1906 @@
+# ═══════════════════════════════════════════════════════════════════
+#  青冥仓库 · 自定义界面（语法与龙核 DragonCore 的 Gui 完全一致）
+#  ───────────────────────────────────────────────────────────────────
+#  放在 plugins/QingMingVault/gui/ 下，改完 /vault reload 生效。
+#  多个模板时，写 main: true 的那个当主界面。
+#
+#  ── 关于坐标（重要）──
+#  所有组件的 x 都写成  (w-660)/2+数字，y 写成 (h-470)/2+数字。
+#  w / h 是屏幕（GUI 缩放后）的宽高，减掉界面尺寸再除以 2 = 居中。
+#  想整体挪动：只改 (w-660) / (h-470) 这两个数字，别去动后面的偏移量。
+#
+#  ── 插件认的组件名（名字必须这么起）──
+#  格1 … 格27        texture，仓库格子外框 + 点击层（左中右键都挂这里）
+#  物1 … 物27        slot，仓库物品图标（identifier 由插件改写）
+#  数1 … 数27        label，这一格存了多少
+#  背包格1 … 背包格36  texture，玩家背包的点击层
+#  背包物1 … 背包物36  slot，玩家背包里的物品（插件每帧同步真实背包）
+#  页码              当前页 / 总页
+#  上一页 / 下一页    翻页，没页可翻时自动隐藏
+#  种类 / 总数        仓库统计
+#  空                仓库为空时显示的提示
+#  关闭              点了关界面
+#  取数量xxx         「自定义数量」浮层，没在调数量时整组隐藏
+#
+#  ★ 格子顺序：物 → 格 → 数
+#    客户端点击只会发给「最上面那个」组件，所以点击层必须盖在物品槽上面；
+#    而格子贴图中心是透明的，物品不会变暗，鼠标移上去也仍然是物品原生 tooltip。
+#
+#  ── 可用变量 ──
+#  {w} {h} {page} {pages} {kinds} {total} {cols} {rows} {per} {qty} {name}
+#  仓库格子另有 {index}（物品序号，0 起）/ {cell}；背包格子另有 {inv}（真实背包索引）
+#
+#  ── 按钮怎么调插件 ──
+#  方法.发包('QingMingVault', '动作', 参数…)
+#    取 '1' '{index}'     取出 1 个（左键）
+#    取 '64' '{index}'    取出 64 个（中键）
+#    全部 '{index}'       这一类全取出来
+#    自定 '{index}'       右键：弹出数量浮层
+#    调量 '1' / '-1'      浮层里加减数量
+#    确定 / 收起          浮层确认 / 关闭
+#    存 '{inv}' '1'       把背包这一格整组存进去
+#    存 '{inv}' 方法.键位是否按下('LSHIFT')   按住 Shift 存整组，否则存 1 个
+#    翻页 '1' / '-1'
+#    关闭
+# ═══════════════════════════════════════════════════════════════════
+
+main: true
+size: [660, 470]
+cols: 9
+rows: 3
+# ★ through: true —— 「鼠标事件穿透」。
+#   默认 false 时，鼠标只认最上面那一个组件：格子贴图（点击层）盖住了物品槽，
+#   客户端就不给物品槽显示原生 tooltip，只会画贴图自己的 tip（名字是英文的）。
+#   开了它以后：悬浮 → 客户端会挑「最后一个物品槽」，画的是物品自己的原生提示
+#   （中文名 / 附魔 / 属性全都对）；点击 → 所有叠在一起的组件都响应，
+#   所以贴图上的左中右键照样能用。
+through: true
+
+
+# ── 底板 + 边框（9 宫格，角 76 px）─────────────────────
+底板:
+  type: texture
+  x: "(w-660)/2+76"
+  y: "(h-470)/2+76"
+  width: 508
+  height: 318
+  texture: "商城/边框_中.png"
+  visible: true
+边框左上:
+  type: texture
+  x: "(w-660)/2"
+  y: "(h-470)/2"
+  width: 76
+  height: 76
+  texture: "商城/边框_左上.png"
+  visible: true
+边框上:
+  type: texture
+  x: "(w-660)/2+76"
+  y: "(h-470)/2"
+  width: 508
+  height: 76
+  texture: "商城/边框_上.png"
+  visible: true
+边框右上:
+  type: texture
+  x: "(w-660)/2+584"
+  y: "(h-470)/2"
+  width: 76
+  height: 76
+  texture: "商城/边框_右上.png"
+  visible: true
+边框左:
+  type: texture
+  x: "(w-660)/2"
+  y: "(h-470)/2+76"
+  width: 76
+  height: 318
+  texture: "商城/边框_左.png"
+  visible: true
+边框右:
+  type: texture
+  x: "(w-660)/2+584"
+  y: "(h-470)/2+76"
+  width: 76
+  height: 318
+  texture: "商城/边框_右.png"
+  visible: true
+边框左下:
+  type: texture
+  x: "(w-660)/2"
+  y: "(h-470)/2+394"
+  width: 76
+  height: 76
+  texture: "商城/边框_左下.png"
+  visible: true
+边框下:
+  type: texture
+  x: "(w-660)/2+76"
+  y: "(h-470)/2+394"
+  width: 508
+  height: 76
+  texture: "商城/边框_下.png"
+  visible: true
+边框右下:
+  type: texture
+  x: "(w-660)/2+584"
+  y: "(h-470)/2+394"
+  width: 76
+  height: 76
+  texture: "商城/边框_右下.png"
+  visible: true
+
+# ── 标题与翻页 ────────────────────────────────────────
+标题牌:
+  type: texture
+  x: "(w-660)/2+190"
+  y: "(h-470)/2+4"
+  width: 280
+  height: 40
+  texture: "商城/标题牌.png"
+  visible: true
+标题:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+16"
+  texts: ["§6青冥仓库"]
+  scale: 2
+  center: true
+  visible: true
+上一页:
+  type: texture
+  x: "(w-660)/2+160"
+  y: "(h-470)/2+13"
+  width: 22
+  height: 22
+  texture: "商城/箭头_左.png"
+  textureHovered: "商城/箭头_左_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '翻页', '-1')"
+  visible: true
+下一页:
+  type: texture
+  x: "(w-660)/2+478"
+  y: "(h-470)/2+13"
+  width: 22
+  height: 22
+  texture: "商城/箭头_右.png"
+  textureHovered: "商城/箭头_右_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '翻页', '1')"
+  visible: true
+
+# ── 仓库区（9 列 x 3 行 = 27 格 / 页）──────────────────────
+仓库题:
+  type: label
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+52"
+  texts: ["§6仓 库"]
+  scale: 1
+  visible: true
+种类:
+  type: label
+  x: "(w-660)/2+379"
+  y: "(h-470)/2+52"
+  texts: ["§7种类 §e0"]
+  scale: 1
+  visible: true
+总数:
+  type: label
+  x: "(w-660)/2+459"
+  y: "(h-470)/2+52"
+  texts: ["§7总数 §e0"]
+  scale: 1
+  visible: true
+
+# ── 仓库第 1 行（想加行就复制一整段，行号 +1、y 加 47）────────
+物1:
+  type: slot
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数1:
+  type: label
+  x: "(w-660)/2+142"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格1:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物2:
+  type: slot
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数2:
+  type: label
+  x: "(w-660)/2+189"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格2:
+  type: texture
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物3:
+  type: slot
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数3:
+  type: label
+  x: "(w-660)/2+236"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格3:
+  type: texture
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物4:
+  type: slot
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数4:
+  type: label
+  x: "(w-660)/2+283"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格4:
+  type: texture
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物5:
+  type: slot
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数5:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格5:
+  type: texture
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物6:
+  type: slot
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数6:
+  type: label
+  x: "(w-660)/2+377"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格6:
+  type: texture
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物7:
+  type: slot
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数7:
+  type: label
+  x: "(w-660)/2+424"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格7:
+  type: texture
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物8:
+  type: slot
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数8:
+  type: label
+  x: "(w-660)/2+471"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格8:
+  type: texture
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物9:
+  type: slot
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数9:
+  type: label
+  x: "(w-660)/2+518"
+  y: "(h-470)/2+92"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格9:
+  type: texture
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+64"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+
+# ── 仓库第 2 行（想加行就复制一整段，行号 +1、y 加 47）────────
+物10:
+  type: slot
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数10:
+  type: label
+  x: "(w-660)/2+142"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格10:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物11:
+  type: slot
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数11:
+  type: label
+  x: "(w-660)/2+189"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格11:
+  type: texture
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物12:
+  type: slot
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数12:
+  type: label
+  x: "(w-660)/2+236"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格12:
+  type: texture
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物13:
+  type: slot
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数13:
+  type: label
+  x: "(w-660)/2+283"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格13:
+  type: texture
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物14:
+  type: slot
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数14:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格14:
+  type: texture
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物15:
+  type: slot
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数15:
+  type: label
+  x: "(w-660)/2+377"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格15:
+  type: texture
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物16:
+  type: slot
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数16:
+  type: label
+  x: "(w-660)/2+424"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格16:
+  type: texture
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物17:
+  type: slot
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数17:
+  type: label
+  x: "(w-660)/2+471"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格17:
+  type: texture
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物18:
+  type: slot
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数18:
+  type: label
+  x: "(w-660)/2+518"
+  y: "(h-470)/2+139"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格18:
+  type: texture
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+111"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+
+# ── 仓库第 3 行（想加行就复制一整段，行号 +1、y 加 47）────────
+物19:
+  type: slot
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数19:
+  type: label
+  x: "(w-660)/2+142"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格19:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物20:
+  type: slot
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数20:
+  type: label
+  x: "(w-660)/2+189"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格20:
+  type: texture
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物21:
+  type: slot
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数21:
+  type: label
+  x: "(w-660)/2+236"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格21:
+  type: texture
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物22:
+  type: slot
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数22:
+  type: label
+  x: "(w-660)/2+283"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格22:
+  type: texture
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物23:
+  type: slot
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数23:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格23:
+  type: texture
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物24:
+  type: slot
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数24:
+  type: label
+  x: "(w-660)/2+377"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格24:
+  type: texture
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物25:
+  type: slot
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数25:
+  type: label
+  x: "(w-660)/2+424"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格25:
+  type: texture
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物26:
+  type: slot
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数26:
+  type: label
+  x: "(w-660)/2+471"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格26:
+  type: texture
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+物27:
+  type: slot
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+数27:
+  type: label
+  x: "(w-660)/2+518"
+  y: "(h-470)/2+186"
+  texts: ["§e0"]
+  scale: 1
+  center: true
+  visible: true
+格27:
+  type: texture
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+158"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '取', '1', '{index}')"
+    click_middle: "方法.发包('QingMingVault', '取', '64', '{index}')"
+    click_right: "方法.发包('QingMingVault', '自定', '{index}')"
+  visible: true
+
+# ── 仓库为空时的提示 ──────────────────────────────────
+空:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+128"
+  texts: ["§8仓库是空的 —— 点下面背包里的物品存进来"]
+  scale: 1
+  center: true
+  visible: false
+
+# ── 分隔线 + 玩家背包（9 列 x 4 行 = 36 格）──────────────
+分隔线:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+204"
+  width: 418
+  height: 5
+  texture: "仓库/分隔线.png"
+  visible: true
+背包题:
+  type: label
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+213"
+  texts: ["§6背 包"]
+  scale: 1
+  visible: true
+背包提示:
+  type: label
+  x: "(w-660)/2+179"
+  y: "(h-470)/2+213"
+  texts: ["§8单击存 1 · Shift 单击存整格 · 右键也可整格"]
+  scale: 1
+  visible: true
+
+# ── 背包第 1 行
+背包物1:
+  type: slot
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格1:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物2:
+  type: slot
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格2:
+  type: texture
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物3:
+  type: slot
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格3:
+  type: texture
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物4:
+  type: slot
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格4:
+  type: texture
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物5:
+  type: slot
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格5:
+  type: texture
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物6:
+  type: slot
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格6:
+  type: texture
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物7:
+  type: slot
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格7:
+  type: texture
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物8:
+  type: slot
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格8:
+  type: texture
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物9:
+  type: slot
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格9:
+  type: texture
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+226"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+
+# ── 背包第 2 行
+背包物10:
+  type: slot
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格10:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物11:
+  type: slot
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格11:
+  type: texture
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物12:
+  type: slot
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格12:
+  type: texture
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物13:
+  type: slot
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格13:
+  type: texture
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物14:
+  type: slot
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格14:
+  type: texture
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物15:
+  type: slot
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格15:
+  type: texture
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物16:
+  type: slot
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格16:
+  type: texture
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物17:
+  type: slot
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格17:
+  type: texture
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物18:
+  type: slot
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格18:
+  type: texture
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+273"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+
+# ── 背包第 3 行
+背包物19:
+  type: slot
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格19:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物20:
+  type: slot
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格20:
+  type: texture
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物21:
+  type: slot
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格21:
+  type: texture
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物22:
+  type: slot
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格22:
+  type: texture
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物23:
+  type: slot
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格23:
+  type: texture
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物24:
+  type: slot
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格24:
+  type: texture
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物25:
+  type: slot
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格25:
+  type: texture
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物26:
+  type: slot
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格26:
+  type: texture
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物27:
+  type: slot
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格27:
+  type: texture
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+320"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+
+# ── 背包第 4 行（快捷栏）
+背包物28:
+  type: slot
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格28:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物29:
+  type: slot
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格29:
+  type: texture
+  x: "(w-660)/2+168"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物30:
+  type: slot
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格30:
+  type: texture
+  x: "(w-660)/2+215"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物31:
+  type: slot
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格31:
+  type: texture
+  x: "(w-660)/2+262"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物32:
+  type: slot
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格32:
+  type: texture
+  x: "(w-660)/2+309"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物33:
+  type: slot
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格33:
+  type: texture
+  x: "(w-660)/2+356"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物34:
+  type: slot
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格34:
+  type: texture
+  x: "(w-660)/2+403"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物35:
+  type: slot
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格35:
+  type: texture
+  x: "(w-660)/2+450"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+背包物36:
+  type: slot
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  identifier: "qmv_slot"
+  visible: true
+背包格36:
+  type: texture
+  x: "(w-660)/2+497"
+  y: "(h-470)/2+367"
+  width: 42
+  height: 42
+  texture: "仓库/格_42.png"
+  textureHovered: "仓库/格_42_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '存', '{inv}', 方法.键位是否按下('LSHIFT'))"
+    click_right: "方法.发包('QingMingVault', '存', '{inv}', '1')"
+  visible: true
+
+# ── 底栏 ──────────────────────────────────────────────
+底栏:
+  type: texture
+  x: "(w-660)/2+121"
+  y: "(h-470)/2+412"
+  width: 418
+  height: 46
+  texture: "商城/购买框.png"
+  visible: true
+页码:
+  type: label
+  x: "(w-660)/2+392"
+  y: "(h-470)/2+431"
+  texts: ["§7第 §e1 §7/ §e2 §7页"]
+  scale: 1
+  center: true
+  visible: true
+提示:
+  type: label
+  x: "(w-660)/2+135"
+  y: "(h-470)/2+431"
+  texts: ["§8左键 1 · 中键 64 · 右键 自定"]
+  scale: 1
+  visible: true
+关闭:
+  type: texture
+  x: "(w-660)/2+437"
+  y: "(h-470)/2+421"
+  width: 88
+  height: 28
+  texture: "仓库/按钮_关闭.png"
+  textureHovered: "仓库/按钮_关闭_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '关闭')"
+  visible: true
+关闭字:
+  type: label
+  x: "(w-660)/2+481"
+  y: "(h-470)/2+431"
+  texts: ["§7关闭"]
+  scale: 1
+  center: true
+  visible: true
+
+# ── 「自定义数量」浮层（插件控制显隐，平时看不见）────────
+取数量底:
+  type: texture
+  x: "(w-660)/2+180"
+  y: "(h-470)/2+151"
+  width: 300
+  height: 168
+  texture: "仓库/浮层.png"
+  visible: false
+取数量题:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+165"
+  texts: ["§6取出数量"]
+  scale: 2
+  center: true
+  visible: false
+取数量名:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+189"
+  texts: ["§f物品"]
+  scale: 1
+  center: true
+  visible: false
+取数量减10:
+  type: texture
+  x: "(w-660)/2+198"
+  y: "(h-470)/2+223"
+  width: 26
+  height: 26
+  texture: "商城/箭头_左2.png"
+  textureHovered: "商城/箭头_左2_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '调量', '-10')"
+  visible: false
+取数量减1:
+  type: texture
+  x: "(w-660)/2+230"
+  y: "(h-470)/2+223"
+  width: 26
+  height: 26
+  texture: "商城/箭头_左.png"
+  textureHovered: "商城/箭头_左_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '调量', '-1')"
+  visible: false
+取数量数:
+  type: label
+  x: "(w-660)/2+330"
+  y: "(h-470)/2+229"
+  texts: ["§e1"]
+  scale: 2
+  center: true
+  visible: false
+取数量加1:
+  type: texture
+  x: "(w-660)/2+404"
+  y: "(h-470)/2+223"
+  width: 26
+  height: 26
+  texture: "商城/箭头_右.png"
+  textureHovered: "商城/箭头_右_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '调量', '1')"
+  visible: false
+取数量加10:
+  type: texture
+  x: "(w-660)/2+436"
+  y: "(h-470)/2+223"
+  width: 26
+  height: 26
+  texture: "商城/箭头_右2.png"
+  textureHovered: "商城/箭头_右2_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '调量', '10')"
+  visible: false
+取数量确定:
+  type: texture
+  x: "(w-660)/2+220"
+  y: "(h-470)/2+275"
+  width: 88
+  height: 30
+  texture: "仓库/按钮_小.png"
+  textureHovered: "仓库/按钮_小_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '确定')"
+  visible: false
+取数量确定字:
+  type: label
+  x: "(w-660)/2+264"
+  y: "(h-470)/2+283"
+  texts: ["§e取出"]
+  scale: 1
+  center: true
+  visible: false
+取数量取消:
+  type: texture
+  x: "(w-660)/2+352"
+  y: "(h-470)/2+275"
+  width: 88
+  height: 30
+  texture: "仓库/按钮_小.png"
+  textureHovered: "仓库/按钮_小_悬停.png"
+  actions:
+    click_left: "方法.发包('QingMingVault', '收起')"
+  visible: false
+取数量取消字:
+  type: label
+  x: "(w-660)/2+396"
+  y: "(h-470)/2+283"
+  texts: ["§7收起"]
+  scale: 1
+  center: true
+  visible: false

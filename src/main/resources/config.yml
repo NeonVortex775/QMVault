@@ -1,0 +1,96 @@
+# ┌─────────────────────────────────────────────────────────────┐
+# │  青冥仓库 配置文件                                          │
+# │  界面模板在 gui/ 目录（龙核语法），改完 /vault reload 生效    │
+# └─────────────────────────────────────────────────────────────┘
+
+# ── 存储后端 ────────────────────────────────────────────────────
+# sqlite  单文件数据库（默认，不用装任何东西，文件在 plugins/QingMingVault/data/vault.db）
+# mysql   连你自己的数据库，多个服务器可以共享同一份仓库
+# yml     老方案，一个玩家一个文件（只建议备用）
+#
+# ★ 从 yml 切到 sqlite/mysql 时，启动会自动把 data/*.yml 导进数据库
+#   （只导库里还没有的玩家，不会覆盖线上数据，原文件也不会删）
+storage:
+  type: sqlite
+
+  # —— SQLite ——
+  file: "data/vault.db"
+
+  # —— MySQL ——（type: mysql 时才用）
+  host: "127.0.0.1"
+  port: 3306
+  database: "minecraft"
+  user: "root"
+  password: ""
+  # 表前缀，多套服务共用同一个库时用来区分
+  table-prefix: "qm_"
+
+  # 启动时自动把 data/*.yml 导进数据库
+  migrate-yml: true
+
+# 仓库数据目录（相对插件目录）—— storage.type: yml 时用，也是迁移的来源
+data-folder: "data"
+# 每隔多少秒把改动过的仓库写一次库（崩服也不会丢太多）
+autosave-seconds: 60
+
+gui:
+  # 是否使用 gui/ 目录里的自定义界面（龙核语法）；关掉就只用内置动态界面
+  custom-enabled: true
+  # 打印下发日志（排查界面问题时打开）
+  debug: false
+  # 内置界面尺寸；高度 = margin*2 + title-height + rows*cell + (rows-1)*gap + 16 + panel-height
+  width: 660
+  # 每页列数 / 行数（一个格子放一种物品）
+  cols: 9
+  rows: 3
+  # 格子边长与间距
+  cell: 42
+  gap: 5
+  margin: 22
+  title-height: 52
+  panel-height: 92
+
+vault:
+  # 最多能存多少种物品（0 = 不限）
+  max-kinds: 240
+  # 单种物品的堆叠上限（0 = 不限）
+  max-per-kind: 0
+  # 一次「存入背包」最多存几格，防止卡顿
+  store-scan: 36
+  # 右键自定义取出时，数量步长与上限
+  custom-step: 1
+  custom-big-step: 10
+  custom-max: 2304
+  # 打开界面时自动把背包里符合的物品收进去（false = 只有点按钮才存）
+  auto-store: false
+
+# 禁止存入的物品（Material 名），* 结尾表示前缀匹配
+blacklist:
+  - BEDROCK
+  - COMMAND_BLOCK
+  - COMMAND_BLOCK_CHAIN
+  - REPEATING_COMMAND_BLOCK
+  - BARRIER
+  - STRUCTURE_BLOCK
+  - STRUCTURE_VOID
+  - ENDER_PORTAL_FRAME
+  # 想禁一整类可以写 SHULKER_* 这种前缀
+
+messages:
+  prefix: "&8[&6青冥仓库&8] &r"
+  no-template: "&c没有可用的界面模板，请把 gui/默认.yml 放回去（或 /vault reload）"
+  no-permission: "&c你没有权限使用仓库"
+  opened: "&7仓库已打开：点仓库格子取出，点背包格子存入（Shift 存整格）"
+  stored: "&a已存入 &e%amount% &a个物品（&7%kinds% 种&a）"
+  store-nothing: "&7背包里没有能存的东西"
+  took: "&a取出 &e%amount% &ax %item%"
+  take-empty: "&c仓库里没有这个物品了"
+  full: "&c背包满了，多出来的掉在你脚下"
+  kinds-full: "&c仓库种类已达上限（%max% 种），先取走一些"
+  kind-full: "&c这种东西已经存满了（%max%）"
+  blocked: "&c这个物品不能存进仓库"
+  custom-hint: "&7调整数量后点「取出」，或按 Esc 取消"
+  invalid-amount: "&c数量不对"
+  reloaded: "&a仓库配置与界面模板已重载"
+  # 数量浮层里显示的文案（%qty% 会被替换）
+  qty-title: "&6取出数量"
